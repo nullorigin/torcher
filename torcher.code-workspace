@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"codeium.enableSearch": true,
+		"codeium.searchMaxWorkspaceFileCount": 0,
+		"codeium.detectProxy": false,
+		"codeium.aggressiveShutdown": true
+	}
+}

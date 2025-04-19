@@ -1,0 +1,9 @@
+[package]
+name = "torcher"
+description = "Torcher is a firewall generation tool written in Rust"
+license = "MIT"
+repository = "https://github.com/nullorigin/torcher"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
