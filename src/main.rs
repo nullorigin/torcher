@@ -34,12 +34,13 @@ fn main() {
     ns.optimize();
     // Split into chunks of max 65535 entries
     let mut netsets = Vec::new();
-    while ns.len() > 65535 {
-        let (chunk, remainder) = ns.split_at(65535);
-        netsets.push(chunk);
-        ns = remainder;
+    if ns.len() > 65535 {
+        while ns.len() > 65535 {
+            let (chunk, remainder) = ns.split_at(65535);
+            netsets.push(chunk);
+            ns = remainder;
+        }
     }
-
     if !ns.is_empty() {
         netsets.push(ns);
     }

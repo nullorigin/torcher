@@ -37,7 +37,10 @@ impl PathIO {
         if path.exists() {
             let count = path.components().count();
             if count < self.min_depth || count > self.max_depth {
-                return Err(IoError::new(IoErrorKind::InvalidInput, "Path depth is out of range"));
+                return Err(IoError::new(
+                    IoErrorKind::InvalidInput,
+                    "Path depth is out of range",
+                ));
             }
             self.paths[index] = path.to_path_buf();
             Ok(())
@@ -50,7 +53,10 @@ impl PathIO {
         for path in paths {
             let count = path.components().count();
             if count < self.min_depth || count > self.max_depth {
-                return Err(IoError::new(IoErrorKind::InvalidInput, "Path depth is out of range"));
+                return Err(IoError::new(
+                    IoErrorKind::InvalidInput,
+                    "Path depth is out of range",
+                ));
             }
             self.paths.push(path);
         }
@@ -69,7 +75,11 @@ impl PathIO {
         self.min_depth = depth;
     }
     pub fn get_names(&self) -> Result<Vec<String>, IoError> {
-        Ok(self.paths.iter().map(|p| p.file_name().unwrap().to_str().unwrap().to_string()).collect())
+        Ok(self
+            .paths
+            .iter()
+            .map(|p| p.file_name().unwrap().to_str().unwrap().to_string())
+            .collect())
     }
     pub fn set_names(&mut self, names: Vec<String>) -> Result<(), IoError> {
         self.paths.clear();
@@ -77,7 +87,10 @@ impl PathIO {
             let pathbuf = PathBuf::from(name.clone());
             let count = pathbuf.components().count();
             if count < self.min_depth || count > self.max_depth {
-                return Err(IoError::new(IoErrorKind::InvalidInput, "Path depth is out of range"));
+                return Err(IoError::new(
+                    IoErrorKind::InvalidInput,
+                    "Path depth is out of range",
+                ));
             }
             self.paths.push(pathbuf);
         }
@@ -87,7 +100,10 @@ impl PathIO {
     }
     pub fn read_from_path(&self, index: usize) -> Result<String, IoError> {
         if index >= self.paths.len() {
-            return Err(IoError::new(IoErrorKind::InvalidInput, "Index out of bounds"));
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "Index out of bounds",
+            ));
         }
         let path = self.get_path(index).unwrap();
         if !path.exists() {
@@ -103,7 +119,10 @@ impl PathIO {
     }
     pub fn write_to_path(&self, index: usize, contents: &str) -> Result<(), IoError> {
         if index >= self.paths.len() {
-            return Err(IoError::new(IoErrorKind::InvalidInput, "Index out of bounds"));
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "Index out of bounds",
+            ));
         }
         let path = self.get_path(index).unwrap();
         if !path.exists() {
@@ -131,7 +150,7 @@ impl PathIO {
     pub fn write_to_paths(&self, contents: Vec<String>) -> Result<(), IoError> {
         for i in 0..self.paths.len() {
             match self.write_to_path(i, &contents[i]) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => return Err(e),
             }
         }
