@@ -2419,7 +2419,7 @@ macro_rules! impl_from_tuple {
                 result
             }
         }
-    }
+    };
 }
 #[macro_export]
 macro_rules! impl_tuple_from {
@@ -2439,22 +2439,72 @@ macro_rules! impl_tuple_from {
                         _ => panic!("Invalid size"),
                     },
                     4 => match size_u {
-                        1 => ((value.0 as u32 >> 24) as u8, (value.1 as u32 >> 16) as u8, (value.2 as u32 >> 8) as u8, value.3 as u8),
+                        1 => (
+                            (value.0 as u32 >> 24) as u8,
+                            (value.1 as u32 >> 16) as u8,
+                            (value.2 as u32 >> 8) as u8,
+                            value.3 as u8,
+                        ),
                         2 => ((value.0 as u32 >> 8) as u16, value.1 as u16),
                         4 => (value.0 as u32),
                         _ => panic!("Invalid size"),
                     },
                     8 => match size_u {
-                        1 => ((value.0 as u64 >> 56) as u8, (value.1 as u64 >> 48) as u8, (value.2 as u64 >> 40) as u8, (value.3 as u64 >> 32) as u8, (value.4 as u64 >> 24) as u8, (value.5 as u64 >> 16) as u8, (value.6 as u64 >> 8) as u8, value.7 as u8),
-                        2 => ((value.0 as u64 >> 48) as u16, (value.1 as u64 >> 32) as u16, (value.2 as u64 >> 16) as u16, value.3 as u16),
+                        1 => (
+                            (value.0 as u64 >> 56) as u8,
+                            (value.1 as u64 >> 48) as u8,
+                            (value.2 as u64 >> 40) as u8,
+                            (value.3 as u64 >> 32) as u8,
+                            (value.4 as u64 >> 24) as u8,
+                            (value.5 as u64 >> 16) as u8,
+                            (value.6 as u64 >> 8) as u8,
+                            value.7 as u8,
+                        ),
+                        2 => (
+                            (value.0 as u64 >> 48) as u16,
+                            (value.1 as u64 >> 32) as u16,
+                            (value.2 as u64 >> 16) as u16,
+                            value.3 as u16,
+                        ),
                         4 => ((value.0 as u64 >> 32) as u32, value.1 as u32),
                         8 => (value.0 as u64),
                         _ => panic!("Invalid size"),
                     },
                     16 => match size_u {
-                        1 => ((value.0 as u128 >> 120) as u8, (value.1 as u128 >> 112) as u8, (value.2 as u128 >> 104) as u8, (value.3 as u128 >> 96) as u8, (value.4 as u128 >> 88) as u8, (value.5 as u128 >> 80) as u8, (value.6 as u128 >> 72) as u8, (value.7 as u128 >> 64) as u8, (value.8 as u128 >> 56) as u8, (value.9 as u128 >> 48) as u8, (value.10 as u128 >> 40) as u8, (value.11 as u128 >> 32) as u8, (value.12 as u128 >> 24) as u8, (value.13 as u128 >> 16) as u8, (value.14 as u128 >> 8) as u8, value.0 as u8),
-                        2 => ((value.0 as u128 >> 112) as u16, (value.1 as u128 >> 96) as u16, (value.2 as u128 >> 80) as u16, (value.3 as u128 >> 64) as u16, (value.4 as u128 >> 48) as u16, (value.5 as u128 >> 32) as u16, (value.6 as u128 >> 16) as u16, value.7 as u16),
-                        4 => ((value.0 as u128 >> 96) as u32, (value.1 as u128 >> 64) as u32, (value.2 as u128 >> 32) as u32, value.3 as u32),
+                        1 => (
+                            (value.0 as u128 >> 120) as u8,
+                            (value.1 as u128 >> 112) as u8,
+                            (value.2 as u128 >> 104) as u8,
+                            (value.3 as u128 >> 96) as u8,
+                            (value.4 as u128 >> 88) as u8,
+                            (value.5 as u128 >> 80) as u8,
+                            (value.6 as u128 >> 72) as u8,
+                            (value.7 as u128 >> 64) as u8,
+                            (value.8 as u128 >> 56) as u8,
+                            (value.9 as u128 >> 48) as u8,
+                            (value.10 as u128 >> 40) as u8,
+                            (value.11 as u128 >> 32) as u8,
+                            (value.12 as u128 >> 24) as u8,
+                            (value.13 as u128 >> 16) as u8,
+                            (value.14 as u128 >> 8) as u8,
+                            value.0 as u8,
+                        ),
+                        2 => (
+                            (value.0 as u128 >> 112) as u16,
+                            (value.1 as u128 >> 96) as u16,
+                            (value.2 as u128 >> 80) as u16,
+                            (value.3 as u128 >> 64) as u16,
+                            (value.4 as u128 >> 48) as u16,
+                            (value.5 as u128 >> 32) as u16,
+                            (value.6 as u128 >> 16) as u16,
+                            value.7 as u16,
+                        ),
+                        4 => (
+                            (value.0 as u128 >> 96) as u32,
+                            (value.1 as u128 >> 64) as u32,
+                            (value.2 as u128 >> 32) as u32,
+                            value.3 as u32,
+                        ),
                         8 => ((value.0 as u128 >> 64) as u64, (value.1 as u64)),
                         16 => (value.0 as u128),
                         _ => panic!("Invalid size"),
@@ -2462,8 +2512,9 @@ macro_rules! impl_tuple_from {
                 }
             }
         }
-    }
+    };
 }
+
 #[macro_export]
 macro_rules! impl_vec {
     ($T:ident,$U:ident) => {
@@ -2788,7 +2839,7 @@ macro_rules! impl_range {
             }
         }
     };
-}   
+}
 #[macro_export]
 macro_rules! impl_vec_op {
     ($T:ident, $U:ident, $tr:tt, $op:tt) => {

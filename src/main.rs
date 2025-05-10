@@ -1,11 +1,27 @@
 pub mod macros;
 pub mod net;
 pub mod util;
-use net::v4::NetSet;
+pub mod meta;
+use net::{v4::NetSet, PORT_LIST, PROTO_LIST};
 use std::{env::current_dir, path::PathBuf};
+pub use net::Port;
 pub use util::PathIO;
 fn main() {
+    println!("Torcher v{}", env!("CARGO_PKG_VERSION"));
+    println!("Copyright (c) 2025 Matthew Fay. All rights reserved.");
+    println!("License: MIT");
+    println!("\n");
     let input_dir = current_dir().unwrap().join("in");
+    println!("Importing port information from file: /etc/services");
+    for port in PORT_LIST.iter() {
+        println!("{}", port.to_string());
+    }
+    println!("Imported {} port service entries", PORT_LIST.len());
+    println!("Importing protocol information from file: /etc/protocols");
+    for proto in PROTO_LIST.iter() {
+        println!("{}", proto.to_string());
+    }
+    println!("Imported {} protocol entries", PROTO_LIST.len());
     let output_dir = current_dir().unwrap().join("out");
     let mut pathio = PathIO::new();
     pathio.set_max_depth(10);

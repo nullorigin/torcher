@@ -22,35 +22,43 @@ impl PathIO {
         }
     }
     pub fn get_path(&self, index: usize) -> Result<PathBuf, IoError> {
-        match self.paths.get(index) {
-            Some(path) => Ok(path.clone()),
-            None => Err(IoError::new(IoErrorKind::NotFound, "Path not found")),
-        }
+        self.paths
+            .get(index)
+            .cloned()
+            .ok_or_else(|| IoError::new(IoErrorKind::NotFound, "Path not found"))
     }
+
     pub fn get_paths(&self) -> Result<Vec<PathBuf>, IoError> {
         Ok(self.paths.clone())
     }
+
     pub fn set_path(&mut self, path: &Path, index: usize) -> Result<(), IoError> {
+        if !path.exists() {
+            return Err(IoError::new(IoErrorKind::NotFound, "Path not found"));
+        }
+
+        let count = path.components().count();
+        if count < self.min_depth || count > self.max_depth {
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "Path depth is out of range",
+            ));
+        }
+
         if index >= self.paths.len() {
             self.paths.resize(index + 1, PathBuf::new());
         }
-        if path.exists() {
-            let count = path.components().count();
-            if count < self.min_depth || count > self.max_depth {
-                return Err(IoError::new(
-                    IoErrorKind::InvalidInput,
-                    "Path depth is out of range",
-                ));
-            }
-            self.paths[index] = path.to_path_buf();
-            Ok(())
-        } else {
-            Err(IoError::new(IoErrorKind::NotFound, "Path not found"))
-        }
+        self.paths[index] = path.to_path_buf();
+        Ok(())
     }
+
     pub fn set_paths(&mut self, paths: Vec<PathBuf>) -> Result<(), IoError> {
         self.paths.clear();
         for path in paths {
+            if !path.exists() {
+                return Err(IoError::new(IoErrorKind::NotFound, "Path not found"));
+            }
+
             let count = path.components().count();
             if count < self.min_depth || count > self.max_depth {
                 return Err(IoError::new(
@@ -58,6 +66,7 @@ impl PathIO {
                     "Path depth is out of range",
                 ));
             }
+
             self.paths.push(path);
         }
         Ok(())
@@ -82,77 +91,68 @@ impl PathIO {
             .collect())
     }
     pub fn set_names(&mut self, names: Vec<String>) -> Result<(), IoError> {
-        self.paths.clear();
-        for name in names {
-            let pathbuf = PathBuf::from(name.clone());
-            let count = pathbuf.components().count();
-            if count < self.min_depth || count > self.max_depth {
-                return Err(IoError::new(
-                    IoErrorKind::InvalidInput,
-                    "Path depth is out of range",
-                ));
-            }
-            self.paths.push(pathbuf);
+        self.paths = names
+            .clone()
+            .into_iter()
+            .map(PathBuf::from)
+            .filter(|pathbuf| {
+                let count = pathbuf.components().count();
+                count >= self.min_depth && count <= self.max_depth
+            })
+            .collect();
+
+        if self.paths.len() != names.len() {
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "Some paths are out of range",
+            ));
         }
-        self.paths.sort();
+
+        self.paths.sort_unstable();
         self.paths.dedup();
         Ok(())
     }
     pub fn read_from_path(&self, index: usize) -> Result<String, IoError> {
-        if index >= self.paths.len() {
+        let path = self.get_path(index)?;
+        if !path.exists() || !path.is_file() {
             return Err(IoError::new(
-                IoErrorKind::InvalidInput,
-                "Index out of bounds",
+                IoErrorKind::NotFound,
+                "File not found or not a file",
             ));
         }
-        let path = self.get_path(index).unwrap();
-        if !path.exists() {
-            return Err(IoError::new(IoErrorKind::NotFound, "File not found"));
-        }
-        if !path.is_file() {
-            return Err(IoError::new(IoErrorKind::InvalidInput, "Not a file"));
-        }
-        let mut file = File::open(path)?;
         let mut buf = String::new();
-        file.read_to_string(&mut buf)?;
+        File::open(path)?.read_to_string(&mut buf)?;
         Ok(buf)
     }
+
     pub fn write_to_path(&self, index: usize, contents: &str) -> Result<(), IoError> {
-        if index >= self.paths.len() {
+        let path = self.get_path(index)?;
+        if !path.exists() || !path.is_file() {
             return Err(IoError::new(
                 IoErrorKind::InvalidInput,
-                "Index out of bounds",
+                "Path not found or not a file",
             ));
         }
-        let path = self.get_path(index).unwrap();
-        if !path.exists() {
-            let mut file = File::create(path)?;
-            file.write_all(contents.as_bytes())?;
-            return Ok(());
-        } else if path.is_file() {
-            let mut file = File::create(path)?;
-            file.write_all(contents.as_bytes())?;
-            return Ok(());
-        } else {
-            return Err(IoError::new(IoErrorKind::InvalidInput, "Not a file"));
-        }
+        let mut file = File::create(path)?;
+        file.write_all(contents.as_bytes())?;
+        Ok(())
     }
+
     pub fn read_from_paths(&self) -> Result<Vec<String>, IoError> {
-        let mut vec = Vec::<String>::new();
-        for i in 0..self.paths.len() {
-            match self.read_from_path(i) {
-                Ok(contents) => vec.push(contents),
-                Err(e) => return Err(e),
-            }
-        }
-        Ok(vec)
+        (0..self.paths.len())
+            .map(|i| self.read_from_path(i))
+            .collect()
     }
+
     pub fn write_to_paths(&self, contents: Vec<String>) -> Result<(), IoError> {
-        for i in 0..self.paths.len() {
-            match self.write_to_path(i, &contents[i]) {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            }
+        if contents.len() != self.paths.len() {
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "Contents length does not match paths length",
+            ));
+        }
+        for (i, content) in contents.into_iter().enumerate() {
+            self.write_to_path(i, &content)?;
         }
         Ok(())
     }
@@ -194,5 +194,53 @@ impl PathIO {
     }
     pub fn all_dirs_or_symlinks(&self) -> bool {
         self.paths.iter().all(|p| p.is_dir() || p.is_symlink())
+    }
+    pub fn read_lines_from_path(&self, index: usize) -> Result<Vec<String>, IoError> {
+        let path = self.get_path(index)?;
+        if !path.exists() || !path.is_file() {
+            return Err(IoError::new(
+                IoErrorKind::NotFound,
+                "File not found or not a file",
+            ));
+        }
+        let mut buf = String::new();
+        File::open(path)?.read_to_string(&mut buf)?;
+        Ok(buf.lines().map(String::from).collect())
+    }
+
+    pub fn read_lines_from_paths(&self, reverse: bool) -> Result<Vec<String>, IoError> {
+        let mut vec = Vec::new();
+        let indices = if reverse {
+            (0..self.paths.len()).rev().collect::<Vec<_>>()
+        } else {
+            (0..self.paths.len()).collect()
+        };
+
+        for i in indices {
+            vec.extend(self.read_lines_from_path(i)?);
+        }
+        Ok(vec)
+    }
+
+    pub fn write_lines_to_path(&self, index: usize, contents: Vec<String>) -> Result<(), IoError> {
+        let path = self.get_path(index)?;
+        if !path.exists() || !path.is_file() {
+            return Err(IoError::new(
+                IoErrorKind::NotFound,
+                "File not found or not a file",
+            ));
+        }
+        let mut file = File::create(path)?;
+        for line in contents {
+            writeln!(file, "{}", line)?;
+        }
+        Ok(())
+    }
+
+    pub fn write_lines_to_paths(&self, contents: Vec<String>) -> Result<(), IoError> {
+        for i in 0..self.paths.len() {
+            self.write_lines_to_path(i, contents.clone())?;
+        }
+        Ok(())
     }
 }
