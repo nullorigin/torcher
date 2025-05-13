@@ -1,10 +1,10 @@
 pub mod macros;
+pub mod meta;
 pub mod net;
 pub mod util;
-pub mod meta;
-use net::{v4::NetSet, PORT_LIST, PROTO_LIST};
-use std::{env::current_dir, path::PathBuf};
 pub use net::Port;
+use net::{PORT_LIST, PROTO_LIST, v4::NetSet};
+use std::{env::current_dir, path::PathBuf};
 pub use util::PathIO;
 fn main() {
     println!("Torcher v{}", env!("CARGO_PKG_VERSION"));

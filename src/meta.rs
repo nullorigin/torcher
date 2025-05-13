@@ -1,10 +1,8 @@
 use std::cmp::Ordering;
-    use std::{
-    fmt::{Display, Error as FmtError, Formatter},
-    num::ParseIntError,
+use std::{
+    fmt::{Display, Formatter},
     ops::{Add, AddAssign, Index, IndexMut},
     str::FromStr,
-    string::ParseError,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -20,10 +18,7 @@ pub struct Error {
 
 impl Error {
     pub fn new(message: String, code: u32) -> Self {
-        Self {
-            message,
-            code,
-        }
+        Self { message, code }
     }
     pub fn clone(&self) -> Self {
         Self {
@@ -82,11 +77,11 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
     }
-    
+
     fn description(&self) -> &str {
         &self.message
     }
-    
+
     fn cause(&self) -> Option<&dyn std::error::Error> {
         None
     }
@@ -115,7 +110,7 @@ impl<T: Display + ToString + Default + Clone + FromStr + PartialEq + Ord + Parti
             output: T::default(),
             parse: |s: &str| match T::from_str(s) {
                 Ok(t) => Ok(t),
-                Err(e) => Err(Error {
+                Err(_e) => Err(Error {
                     message: "Format error".to_string(),
                     code: 2,
                 }),
@@ -124,7 +119,7 @@ impl<T: Display + ToString + Default + Clone + FromStr + PartialEq + Ord + Parti
             to_string: |t: &T| t.to_string(),
             from_str: |s: &str| match T::from_str(s) {
                 Ok(t) => Ok(t),
-                Err(e) => Err(Error {
+                Err(_e) => Err(Error {
                     message: "Format error".to_string(),
                     code: 2,
                 }),
@@ -260,7 +255,12 @@ impl Info {
         )
     }
     pub fn to_string(&self) -> String {
-        format!("{}\n{}\n{}", self.data[0], self.data[1], self.data[2..].join("\n"))
+        format!(
+            "{}\n{}\n{}",
+            self.data[0],
+            self.data[1],
+            self.data[2..].join("\n")
+        )
     }
     pub fn from_str(s: &str) -> Result<Self, Error> {
         let mut name = String::new();

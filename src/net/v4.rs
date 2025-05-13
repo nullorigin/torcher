@@ -504,6 +504,9 @@ impl NetSet {
     }
     pub fn optimize(&mut self) -> Self {
         let old_len = self.len();
+        if old_len == 0 {
+            return self.clone();
+        }
         if LOGGING_ENABLED {
             println!("Current Total: {} entries", old_len);
         }
