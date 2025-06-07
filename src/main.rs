@@ -5,7 +5,7 @@ pub mod util;
 pub use net::Port;
 use net::{PORT_LIST, PROTO_LIST, v4::NetSet};
 use std::{env::current_dir, fs::{read_to_string, write}, path::PathBuf};
-pub use util::PathVec;
+pub use util::Paths;
 fn main() {
     println!("Torcher v{}", env!("CARGO_PKG_VERSION"));
     println!("Copyright (c) 2025 Matthew Fay. All rights reserved.");

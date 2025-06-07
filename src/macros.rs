@@ -2633,6 +2633,223 @@ macro_rules! impl_vec {
     };
 }
 #[macro_export]
+macro_rules! impl_set {
+    ($T:ident, $U:ident) => {
+        impl<$U: Debug + Clone + PartialEq + Eq> $T {
+            pub fn new() -> Self {
+                Self { data: std::ptr::null_mut(), len: 0 }
+            }
+            pub fn size_of(&self) -> usize {
+                std::mem::size_of::<$U>() * self.len
+            }
+            pub fn len(&self) -> usize {
+                self.len
+            }
+            pub fn clone(&self) -> Self {
+                Self { data: self.data, len: self.len }
+            }
+            pub fn is_empty(&self) -> bool {
+                self.len == 0
+            }
+            pub fn alloc(len: usize) -> *mut $U {
+                if len == 0 {
+                    std::ptr::null_mut()
+                } else {
+                    unsafe {
+                        let layout = std::alloc::Layout::array::<$U>(len).unwrap();
+                        let ptr = std::alloc::alloc(layout) as *mut $U;
+                        if ptr.is_null() { std::process::abort(); }
+                        ptr
+                    }
+                }
+            }
+            pub fn free(&mut self) {
+                if !self.data.is_null() && self.len > 0 {
+                    unsafe {
+                        let layout = std::alloc::Layout::array::<$U>(self.len).unwrap();
+                        std::alloc::dealloc(self.data as *mut u8, layout);
+                    }
+                }
+                self.data = std::ptr::null_mut();
+                self.len = 0;
+            }
+            pub fn push(&mut self, item: $U) {
+                if !self.contains(&item) {
+                    self.len += 1;
+                    let new_data = Self::alloc(self.len);
+                    unsafe {
+                        if self.len > 0 {
+                            std::ptr::copy_nonoverlapping(self.data, new_data, self.len - 1);
+                        }
+                        std::ptr::write(new_data.add(self.len - 1), item);
+                    }
+                    self.free();
+                    self.data = new_data;
+                }
+            }
+            pub fn pop(&mut self) -> Option<$U> {
+                if self.len > 0 {
+                    self.len -= 1;
+                    let item = unsafe { std::ptr::read(self.data.add(self.len)) };
+                    Some(item)
+                } else {
+                    None
+                }
+            }
+            pub fn insert(&mut self, item: $U, index: usize) {
+                if !self.contains(&item) {
+                    self.len += 1;
+                    let new_data = Self::alloc(self.len);
+                    unsafe {
+                        if index > 0 {
+                            std::ptr::copy_nonoverlapping(self.data, new_data, index);
+                        }
+                        std::ptr::write(new_data.add(index), item);
+                        if index < self.len - 1 {
+                            std::ptr::copy_nonoverlapping(self.data.add(index + 1), new_data.add(index + 1), self.len - index - 1);
+                        }
+                    }
+                    self.free();
+                    self.data = new_data;
+                }
+            }
+            pub fn remove(&mut self, item: $U) {
+                if self.contains(&item) {
+                    self.len -= 1;
+                    let new_data = Self::alloc(self.len);
+                    unsafe {
+                        for i in 0..self.len {
+                            if *self.data.add(i) != item {
+                                std::ptr::write(new_data.add(i), *self.data.add(i));
+                            }
+                        }
+                    }
+                    self.free();
+                    self.data = new_data;
+                }
+            }
+            pub fn contains(&self, item: &$U) -> bool {
+                unsafe {
+                    for i in 0..self.len {
+                        if *self.data.add(i) == *item {
+                            return true;
+                        }
+                    }
+                    false
+                }
+            }
+            pub fn clear(&mut self) {
+                self.len = 0;
+                self.data = std::ptr::null_mut();
+            }
+            pub fn shrink_to_fit(&mut self) {
+                if self.len > 0 {
+                    let new_data = Self::alloc(self.len);
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(self.data, new_data, self.len);
+                    }
+                    self.free();
+                    self.data = new_data;
+                }
+            }
+            pub fn with_capacity(capacity: usize) -> Self {
+                Self { data: Self::alloc(capacity), len: 0 }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> Clone for $T {
+            fn clone(&self) -> Self {
+                Self { data: self.data, len: self.len }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> Drop for $T {
+            fn drop(&mut self) {
+                self.free();
+            }
+        }
+            
+        impl<$U: Clone + PartialEq + Eq> AsRef<[$U]> for $T {
+            fn as_ref(&self) -> &[$U] {
+                unsafe { std::slice::from_raw_parts(self.data as *const $U, self.len) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> AsMut<[$U]> for $T {
+            fn as_mut(&mut self) -> &mut [$U] {
+                unsafe { std::slice::from_raw_parts_mut(self.data as *mut $U, self.len) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> std::ops::Deref for $T {
+            type Target = [$U];
+            fn deref(&self) -> &Self::Target {
+                unsafe { std::slice::from_raw_parts(self.data, self.len) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> std::ops::DerefMut for $T {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                unsafe { std::slice::from_raw_parts_mut(self.data, self.len) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> Ord for $T {
+            fn cmp(&self, other: &Self) -> Ordering {
+                self.len.cmp(&other.len)
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> PartialOrd for $T {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> Index<usize> for $T {
+            type Output = $U;
+            fn index(&self, index: usize) -> &Self::Output {
+                unsafe { &*self.data.add(index) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> IndexMut<usize> for $T {
+            fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+                unsafe { &mut *self.data.add(index) }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> Iterator for $T {
+            type Item = $U;
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.len > 0 {
+                    let item = unsafe { std::ptr::read(self.data) };
+                    self.len -= 1;
+                    Some(item)
+                } else {
+                    None
+                }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> DoubleEndedIterator for $T {
+            fn next_back(&mut self) -> Option<Self::Item> {
+                if self.len > 0 {
+                    let item = unsafe { std::ptr::read(self.data.add(self.len - 1)) };
+                    self.len -= 1;
+                    Some(item)
+                } else {
+                    None
+                }
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> ExactSizeIterator for $T {
+            fn len(&self) -> usize {
+                self.len
+            }
+        }
+        impl<$U: Clone + PartialEq + Eq> FromIterator<$U> for $T {
+            fn from_iter<I: IntoIterator<Item = $U>>(iter: I) -> Self {
+                let mut data = Self::new();
+                for item in iter {
+                    data.push(item);
+                }
+                data
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_octet_quad {
     ($T:ident) => {
         #[derive(Debug, Clone, Copy, Eq, PartialEq)]
